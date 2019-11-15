@@ -118,36 +118,58 @@ static NSInteger const ImageCount = 51;
 
 //拦截tabBar的点击事件 - 通过代理实现
 - (BOOL)tabBarController:(UITabBarController *)tabBarController shouldSelectViewController:(UIViewController *)viewController {
-#pragma tabBar上做动画的功能在iPhone11运行会出问题
     NSInteger index = [tabBarController.childViewControllers indexOfObject:viewController];
     
     //取到选中的tabBar 上的button
     UIButton *tabBarBtn = tabBarController.tabBar.subviews[index+1];
     //取到button上的imageView
-    UIImageView *imageView = tabBarBtn.subviews.firstObject;
-    // 切换过了,就停止上一个动画
-    if (self.currentIndex != index) {
-        // 把上一个图片的动画停止
-        [self.currentImageView stopAnimating];
-        // 把上一个图片的动画图片数组置为空
-        self.currentImageView.animationImages = nil;
-    } else {//如果点击的还是当前item则不响应
-        return NO;
+    UIView *imageViewOrigin = [self findViewWithClassName:@"UITabBarSwappableImageView" inView:tabBarBtn];
+    if (imageViewOrigin != nil) {
+        UIImageView *imageView = (UIImageView *)imageViewOrigin;
+        
+        // 切换过了,就停止上一个动画
+        if (self.currentIndex != index) {
+            // 把上一个图片的动画停止
+            [self.currentImageView stopAnimating];
+            // 把上一个图片的动画图片数组置为空
+            self.currentImageView.animationImages = nil;
+        } else {//如果点击的还是当前item则不响应
+            return NO;
+        }
+        
+        imageView.animationImages = self.allImages[index];
+        imageView.animationRepeatCount = 1;
+        imageView.animationDuration = ImageCount * 0.025;
+        
+        // 开始动画
+        [imageView startAnimating];
+        
+        // 记录当前选中的按钮的图片视图
+        self.currentImageView = imageView;
+        // 记录当前选中的下标
+        self.currentIndex = index;
     }
     
-    imageView.animationImages = self.allImages[index];
-    imageView.animationRepeatCount = 1;
-    imageView.animationDuration = ImageCount * 0.025;
-    
-    // 开始动画
-    [imageView startAnimating];
-    
-    // 记录当前选中的按钮的图片视图
-    self.currentImageView = imageView;
-    // 记录当前选中的下标
-    self.currentIndex = index;
-    
     return YES;
+}
+
+//遍历获取指定类型的属性
+- (UIView *)findViewWithClassName:(NSString *)className inView:(UIView *)view{
+    Class specificView = NSClassFromString(className);
+    if ([view isKindOfClass:specificView]) {
+        return view;
+    }
+
+    if (view.subviews.count > 0) {
+        for (UIView *subView in view.subviews) {
+            UIView *targetView = [self findViewWithClassName:className inView:subView];
+            if (targetView != nil) {
+                return targetView;
+            }
+        }
+    }
+    
+    return nil;
 }
 
 //系统方法,点击tabBar后响应(无法拦截点击事件)
